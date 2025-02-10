@@ -2,6 +2,7 @@ package repository
 
 import (
 	"database/sql"
+	"fmt"
 	"github.com/AndreaCasaluci/go-chat-app/models"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -46,5 +47,24 @@ func CreateUser(db *sql.DB, username, email, password string) (*models.User, err
 		return nil, err
 	}
 
+	return &user, nil
+}
+
+func AuthenticateUser(db *sql.DB, email, password string) (*models.User, error) {
+	var user models.User
+
+	err := db.QueryRow("SELECT id, username, email, password FROM users WHERE LOWER(email) = LOWER($1)", email).Scan(&user.ID, &user.Username, &user.Email, &user.Password)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, fmt.Errorf("invalid email or password")
+		}
+		return nil, fmt.Errorf("error querying user: %v", err)
+	}
+
+	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
+	if err != nil {
+		return nil, fmt.Errorf("invalid email or password")
+	}
+	
 	return &user, nil
 }

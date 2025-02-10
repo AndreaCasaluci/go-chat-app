@@ -28,6 +28,8 @@ func main() {
 
 	r.HandleFunc("/register", handlers.RegisterUser).Methods("POST")
 
+	r.HandleFunc("/login", handlers.LoginUser).Methods("POST")
+
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
