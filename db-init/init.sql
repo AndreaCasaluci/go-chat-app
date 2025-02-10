@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS users (
     username VARCHAR(100) UNIQUE NOT NULL,
     password VARCHAR(100) NOT NULL,
     email VARCHAR(255) UNIQUE NOT NULL,    -- Email address
-    verified BOOLEAN DEFAULT FALSE        -- Email verified status (false by default)
+    verified BOOLEAN DEFAULT FALSE,        -- Email verified status (false by default)
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
