@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/AndreaCasaluci/go-chat-app/models"
+	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 	"log"
 	"time"
@@ -120,7 +121,7 @@ func AuthenticateUser(db *sql.DB, email, password string) (*models.User, error) 
 }
 
 type UpdateUserParams struct {
-	UserUUID *string
+	UserUUID *uuid.UUID
 	Username *string
 	Email    *string
 	Password *string

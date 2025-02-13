@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/AndreaCasaluci/go-chat-app/utils"
+	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"net/http"
 	"regexp"
@@ -134,15 +135,14 @@ type UpdateUserRequest struct {
 func UpdateUser(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	userUUID := vars["uuid"]
-	actualUserUUID := r.Context().Value("user_uuid")
-	fmt.Sprintf(actualUserUUID.(string))
-	claims, ok := r.Context().Value("user_uuid").(string)
-	if !ok || claims == "" {
+
+	claimUUID, ok := r.Context().Value("user_uuid").(uuid.UUID)
+	if !ok || claimUUID.String() == "" {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	if userUUID != claims {
+	if userUUID != claimUUID.String() {
 		http.Error(w, "You can only update your own account", http.StatusForbidden)
 		return
 	}
@@ -171,7 +171,7 @@ func UpdateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	updatedUser, err := repository.UpdateUser(db, repository.UpdateUserParams{&userUUID, userReq.Username, userReq.Email, userReq.Password})
+	updatedUser, err := repository.UpdateUser(db, repository.UpdateUserParams{&claimUUID, userReq.Username, userReq.Email, userReq.Password})
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Error updating user: %v", err), http.StatusInternalServerError)
 		return
