@@ -10,7 +10,6 @@ import (
 
 func JWTMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Get the token from the Authorization header
 		authHeader := r.Header.Get("Authorization")
 		if authHeader == "" {
 			http.Error(w, "Missing Authorization header", http.StatusUnauthorized)
@@ -31,6 +30,9 @@ func JWTMiddleware(next http.HandlerFunc) http.HandlerFunc {
 
 		ctx := r.Context()
 		ctx = context.WithValue(ctx, "user_id", claims.UserID)
+		ctx = context.WithValue(ctx, "user_uuid", claims.UserUUID)
+		ctx = context.WithValue(ctx, "username", claims.Username)
+		ctx = context.WithValue(ctx, "email", claims.Email)
 		r = r.WithContext(ctx)
 
 		next.ServeHTTP(w, r)

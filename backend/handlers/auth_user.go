@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/google/uuid"
 	"github.com/joho/godotenv"
 	"log"
 	"net/http"
@@ -61,7 +62,7 @@ func LoginUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := generateJWT(user.ID, user.Email)
+	token, err := generateJWT(user.ID, user.UUID, user.Username, user.Email)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Error generating JWT: %v", err), http.StatusInternalServerError)
 		return
@@ -71,13 +72,15 @@ func LoginUser(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(LoginResponse{Token: token})
 }
 
-func generateJWT(userID int64, userEmail string) (string, error) {
+func generateJWT(userID int64, userUuid uuid.UUID, username string, userEmail string) (string, error) {
 	retrieveJwtSecret()
 
 	claims := jwt.MapClaims{
-		"user_id": userID,
-		"email":   userEmail,
-		"exp":     time.Now().Add(time.Hour * 24).Unix(),
+		"user_id":   userID,
+		"user_uuid": userUuid,
+		"email":     userEmail,
+		"username":  username,
+		"exp":       time.Now().Add(time.Hour * 24).Unix(),
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)

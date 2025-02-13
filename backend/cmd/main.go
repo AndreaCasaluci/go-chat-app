@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/AndreaCasaluci/go-chat-app/handlers"
+	"github.com/AndreaCasaluci/go-chat-app/middleware"
 	"log"
 	"net/http"
 	"os"
@@ -29,6 +30,8 @@ func main() {
 	r.HandleFunc("/register", handlers.RegisterUser).Methods("POST")
 
 	r.HandleFunc("/login", handlers.LoginUser).Methods("POST")
+
+	r.HandleFunc("/users/{uuid}", middleware.JWTMiddleware(handlers.UpdateUser)).Methods("PATCH")
 
 	port := os.Getenv("PORT")
 	if port == "" {

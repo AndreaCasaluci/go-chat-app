@@ -3,6 +3,7 @@ package utils
 import (
 	"fmt"
 	"github.com/dgrijalva/jwt-go"
+	"github.com/google/uuid"
 	"github.com/joho/godotenv"
 	"log"
 	"os"
@@ -27,6 +28,9 @@ func retrieveJwtSecret() {
 
 type Claims struct {
 	UserID int64 `json:"user_id"`
+	UserUUID uuid.UUID `json:"user_uuid"`
+	Username string `json:"username"`
+	Email string `json:"email"`
 	jwt.StandardClaims
 }
 
