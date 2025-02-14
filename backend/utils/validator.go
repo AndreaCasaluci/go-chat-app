@@ -3,13 +3,18 @@ package utils
 import (
 	"fmt"
 	"github.com/go-playground/validator/v10"
+	"regexp"
 )
 
 var Validator *validator.Validate = nil
 
-func getValidator() *validator.Validate{
+func getValidator() *validator.Validate {
 	if Validator == nil {
 		Validator = validator.New()
+		err :=Validator.RegisterValidation("usernamechars", validateUsernameChars)
+		if err != nil {
+			panic(err)
+		}
 	}
 	return Validator
 }
@@ -28,4 +33,11 @@ func ValidateStruct(data interface{}) error {
 	}
 
 	return nil
+}
+
+func validateUsernameChars(fl validator.FieldLevel) bool {
+	username := fl.Field().String()
+
+	re := regexp.MustCompile(`^[a-zA-Z0-9_]+$`)
+	return re.MatchString(username)
 }
