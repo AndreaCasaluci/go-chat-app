@@ -1,9 +1,11 @@
 package repository
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"github.com/AndreaCasaluci/go-chat-app/models"
+	"github.com/AndreaCasaluci/go-chat-app/utils"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 	"log"
@@ -127,7 +129,7 @@ type UpdateUserParams struct {
 	Password *string
 }
 
-func UpdateUser(db *sql.DB, params UpdateUserParams) (*models.User, error) {
+func UpdateUser(ctx context.Context, db *sql.DB, params UpdateUserParams) (*models.User, error) {
 	userChan := make(chan *models.User)
 	errChan := make(chan error)
 
@@ -151,15 +153,19 @@ func UpdateUser(db *sql.DB, params UpdateUserParams) (*models.User, error) {
 		}
 
 		if params.Password != nil {
+			hashedPassword, err := utils.HashPassword(*params.Password)
+			if err != nil {
+				errChan <- fmt.Errorf("could not hash password: %v", err)
+				return
+			}
 			query += fmt.Sprintf(", password=$%d", argCount)
-			args = append(args, *params.Password)
+			args = append(args, *hashedPassword)
 			argCount++
 		}
 
 		query += fmt.Sprintf(" WHERE uuid=$%d RETURNING id, username, email, uuid, created_at, updated_at", argCount)
 		args = append(args, params.UserUUID)
-
-		err := db.QueryRow(query, args...).Scan(&user.ID, &user.Username, &user.Email, &user.UUID, &user.CreatedAt, &user.UpdatedAt)
+		err := db.QueryRowContext(ctx, query, args...).Scan(&user.ID, &user.Username, &user.Email, &user.UUID, &user.CreatedAt, &user.UpdatedAt)
 		if err != nil {
 			errChan <- fmt.Errorf("could not update user: %v", err)
 			return
