@@ -4,9 +4,6 @@ import (
 	"fmt"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/google/uuid"
-	"github.com/joho/godotenv"
-	"log"
-	"os"
 )
 
 var jwtSecret []byte = nil
@@ -15,11 +12,13 @@ func retrieveJwtSecret() {
 	if jwtSecret != nil {
 		return
 	}
-	err := godotenv.Load("../.env")
+
+	config, err := GetConfig()
 	if err != nil {
-		log.Println("Warning: No .env file found, using system environment variables")
+		panic(err)
 	}
-	jwtSecretString := os.Getenv("JWT_SECRET_KEY")
+
+	jwtSecretString := config.JwtSecretKey
 	if len(jwtSecretString) == 0 {
 		panic("JWT_SECRET_KEY is not set in the environment variables!")
 	}
@@ -35,10 +34,10 @@ type Claims struct {
 }
 
 func ValidateToken(tokenString string) (*Claims, error) {
-	retrieveJwtSecret()
+	jwtSecretKey := GetJwtSecret()
 
 	token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (interface{}, error) {
-		return jwtSecret, nil
+		return jwtSecretKey, nil
 	})
 	if err != nil {
 		return nil, fmt.Errorf("error parsing token: %v", err)
@@ -49,4 +48,12 @@ func ValidateToken(tokenString string) (*Claims, error) {
 	}
 
 	return nil, fmt.Errorf("invalid or expired token")
+}
+
+func GetJwtSecret() []byte {
+	if jwtSecret != nil {
+		return jwtSecret
+	}
+	retrieveJwtSecret()
+	return jwtSecret
 }

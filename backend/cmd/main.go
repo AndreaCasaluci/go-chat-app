@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"github.com/AndreaCasaluci/go-chat-app/utils"
 	"log"
 	"net/http"
 	"os"
@@ -19,12 +20,20 @@ import (
 )
 
 func main() {
+
+	config, err := utils.GetConfig()
+	if err != nil {
+		log.Fatalf("Could not load config: %v", err)
+		return
+	}
+
 	db, err := database.GetDb()
 	if err != nil {
 		log.Fatalf("Could not connect to the database: %v", err)
+		return
 	}
 
-	port := os.Getenv("PORT")
+	port := config.ServerPort
 	if port == "" {
 		port = "8080"
 	}

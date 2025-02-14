@@ -3,34 +3,15 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/AndreaCasaluci/go-chat-app/utils"
 	"github.com/google/uuid"
-	"github.com/joho/godotenv"
-	"log"
 	"net/http"
 	"time"
 
 	"github.com/AndreaCasaluci/go-chat-app/db"
 	"github.com/AndreaCasaluci/go-chat-app/repository"
 	"github.com/dgrijalva/jwt-go"
-	"os"
 )
-
-var jwtSecret []byte = nil
-
-func retrieveJwtSecret() {
-	if jwtSecret != nil {
-		return
-	}
-	err := godotenv.Load("../.env")
-	if err != nil {
-		log.Println("Warning: No .env file found, using system environment variables")
-	}
-	jwtSecretString := os.Getenv("JWT_SECRET_KEY")
-	if len(jwtSecretString) == 0 {
-		panic("JWT_SECRET_KEY is not set in the environment variables!")
-	}
-	jwtSecret = []byte(jwtSecretString)
-}
 
 type LoginRequest struct {
 	Email    string `json:"email"`
@@ -74,7 +55,7 @@ func LoginUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func generateJWT(userID int64, userUuid uuid.UUID, username string, userEmail string) (string, error) {
-	retrieveJwtSecret()
+	jwtSecret := utils.GetJwtSecret()
 
 	claims := jwt.MapClaims{
 		"user_id":   userID,
