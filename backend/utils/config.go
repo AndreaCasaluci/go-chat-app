@@ -18,30 +18,31 @@ type Config struct {
 	MinioSecretKey string `mapstructure:"MINIO_SECRET_KEY"`
 }
 
-var AppConfig Config
+var AppConfig *Config = nil
 
-func loadConfig() (config Config, err error) {
+func loadConfig() (config *Config, err error) {
 	envs := Config{}
 	viper.SetConfigFile(".env")
 
 	er := viper.ReadInConfig()
 	if er != nil {
 		log.Fatal("Can't find the file .env : ", er)
-		return envs, er
+		return &envs, er
 	}
 
 	er = viper.Unmarshal(&envs)
 	if er != nil {
 		log.Fatal("Environment can't be loaded: ", er)
-		return envs, er
+		return &envs, er
 	}
 
-	AppConfig = envs
-	return envs, nil
+	AppConfig = &Config{}
+	*AppConfig = envs
+	return AppConfig, nil
 }
 
-func GetConfig() (config Config, err error) {
-	if AppConfig.DbHost != "" {
+func GetConfig() (config *Config, err error) {
+	if AppConfig != nil {
 		return AppConfig, nil
 	}
 	config, err = loadConfig()

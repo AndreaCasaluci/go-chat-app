@@ -14,8 +14,8 @@ import (
 )
 
 type LoginRequest struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
+	Email    string `json:"email" validate:"required,email"`
+	Password string `json:"password" validate:"required"`
 }
 
 type LoginResponse struct {
@@ -27,6 +27,12 @@ func LoginUser(w http.ResponseWriter, r *http.Request) {
 
 	if err := json.NewDecoder(r.Body).Decode(&loginReq); err != nil {
 		http.Error(w, fmt.Sprintf("Invalid request: %v", err), http.StatusBadRequest)
+		return
+	}
+
+	validationErr := utils.ValidateStruct(loginReq)
+	if validationErr != nil {
+		http.Error(w, fmt.Sprintf("Validation error: %v", validationErr), http.StatusBadRequest)
 		return
 	}
 
