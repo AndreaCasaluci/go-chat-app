@@ -90,7 +90,9 @@ func RegisterUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userExistsResult := repository.IsUserExists(db, &userReq.Username, &userReq.Email)
+	ctx := r.Context()
+
+	userExistsResult := repository.IsUserExists(ctx, db, &userReq.Username, &userReq.Email)
 	if userExistsResult.Err != nil {
 		http.Error(w, fmt.Sprintf("Error checking user existence: %v", userExistsResult.Err), http.StatusInternalServerError)
 		return
@@ -106,7 +108,7 @@ func RegisterUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := repository.CreateUser(db, repository.CreateUserParams{userReq.Username, userReq.Email, *hashedPassword})
+	user, err := repository.CreateUser(ctx, db, repository.CreateUserParams{userReq.Username, userReq.Email, *hashedPassword})
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Error creating user: %v", err), http.StatusInternalServerError)
 		return
@@ -158,7 +160,9 @@ func UpdateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	isExistResult := repository.IsUserExists(db, userReq.Username, userReq.Email)
+	ctx := r.Context()
+
+	isExistResult := repository.IsUserExists(ctx, db, userReq.Username, userReq.Email)
 	if isExistResult.Err != nil {
 		http.Error(w, fmt.Sprintf("Error checking user existence: %v", err), http.StatusInternalServerError)
 		return
@@ -169,7 +173,6 @@ func UpdateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ctx := r.Context()
 	updatedUser, err := repository.UpdateUser(ctx, db, repository.UpdateUserParams{&claimUUID, userReq.Username, userReq.Email, userReq.Password})
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Error updating user: %v", err), http.StatusInternalServerError)

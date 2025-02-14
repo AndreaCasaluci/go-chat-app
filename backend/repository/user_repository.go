@@ -18,32 +18,40 @@ type UserExistsResult struct {
 	Err    error
 }
 
-func IsUserExists(db *sql.DB, username, email *string) UserExistsResult {
+func IsUserExists(ctx context.Context, db *sql.DB, username, email *string) UserExistsResult {
 	resultChan := make(chan UserExistsResult, 2)
 
-	if username != nil {
+	checkExists := func(fieldName string, value *string) {
+		if value == nil {
+			return
+		}
+
 		go func() {
 			var exists bool
-			err := db.QueryRow("SELECT EXISTS (SELECT 1 FROM users WHERE username ILIKE $1)", *username).Scan(&exists)
-			resultChan <- UserExistsResult{exists, "username", err}
+			err := db.QueryRowContext(ctx, fmt.Sprintf("SELECT EXISTS (SELECT 1 FROM users WHERE %s ILIKE $1)", fieldName), *value).Scan(&exists)
+
+			select {
+			case resultChan <- UserExistsResult{exists, fieldName, err}:
+			case <-ctx.Done():
+				return
+			}
 		}()
 	}
 
-	if email != nil {
-		go func() {
-			var exists bool
-			err := db.QueryRow("SELECT EXISTS (SELECT 1 FROM users WHERE email ILIKE $1)", *email).Scan(&exists)
-			resultChan <- UserExistsResult{exists, "email", err}
-		}()
-	}
+	checkExists("username", username)
+	checkExists("email", email)
 
 	for i := 0; i < 2; i++ {
-		res := <-resultChan
-		if res.Err != nil {
-			return UserExistsResult{false, "", res.Err}
-		}
-		if res.Exists {
-			return UserExistsResult{true, res.Field, nil}
+		select {
+		case res := <-resultChan:
+			if res.Err != nil {
+				return UserExistsResult{false, "", res.Err}
+			}
+			if res.Exists {
+				return res
+			}
+		case <-ctx.Done():
+			return UserExistsResult{false, "", ctx.Err()}
 		}
 	}
 
@@ -56,7 +64,7 @@ type CreateUserParams struct {
 	HashedPassword string
 }
 
-func CreateUser(db *sql.DB, params CreateUserParams) (*models.User, error) {
+func CreateUser(ctx context.Context, db *sql.DB, params CreateUserParams) (*models.User, error) {
 	resultChan := make(chan struct {
 		user *models.User
 		err  error
@@ -64,10 +72,10 @@ func CreateUser(db *sql.DB, params CreateUserParams) (*models.User, error) {
 
 	go func() {
 		var user models.User
-		err := db.QueryRow(`
-			INSERT INTO users (uuid, username, email, password, created_at, updated_at)
-			VALUES (uuid_generate_v4(), $1, $2, $3, $4, $5)
-			RETURNING id, uuid, username, email, created_at, updated_at`,
+		err := db.QueryRowContext(ctx, `
+				INSERT INTO users (uuid, username, email, password, created_at, updated_at)
+				VALUES (uuid_generate_v4(), $1, $2, $3, $4, $5)
+				RETURNING id, uuid, username, email, created_at, updated_at`,
 			params.Username, params.Email, params.HashedPassword, time.Now(), time.Now(),
 		).Scan(&user.ID, &user.UUID, &user.Username, &user.Email, &user.CreatedAt, &user.UpdatedAt)
 
@@ -75,24 +83,28 @@ func CreateUser(db *sql.DB, params CreateUserParams) (*models.User, error) {
 			user *models.User
 			err  error
 		}{user: &user, err: err}
+
 	}()
 
-	result := <-resultChan
-	if result.err != nil {
-		log.Printf("Error inserting user: %v", result.err)
-		return nil, fmt.Errorf("could not create user: %w", result.err)
+	select {
+	case result := <-resultChan:
+		if result.err != nil {
+			log.Printf("Error inserting user: %v", result.err)
+			return nil, fmt.Errorf("could not create user: %w", result.err)
+		}
+		return result.user, nil
+	case <-ctx.Done():
+		return nil, fmt.Errorf("operation canceled: %w", ctx.Err())
 	}
-
-	return result.user, nil
 }
 
-func AuthenticateUser(db *sql.DB, email, password string) (*models.User, error) {
-	userChan := make(chan *models.User)
-	errChan := make(chan error)
+func AuthenticateUser(ctx context.Context, db *sql.DB, email, password string) (*models.User, error) {
+	userChan := make(chan *models.User, 1)
+	errChan := make(chan error, 1)
 
 	go func() {
 		var user models.User
-		err := db.QueryRow("SELECT id, uuid, username, email, password FROM users WHERE LOWER(email) = LOWER($1)", email).
+		err := db.QueryRowContext(ctx, "SELECT id, uuid, username, email, password FROM users WHERE LOWER(email) = LOWER($1)", email).
 			Scan(&user.ID, &user.UUID, &user.Username, &user.Email, &user.Password)
 
 		if err != nil {
@@ -110,7 +122,6 @@ func AuthenticateUser(db *sql.DB, email, password string) (*models.User, error) 
 		}
 
 		user.Password = ""
-
 		userChan <- &user
 	}()
 
@@ -119,6 +130,8 @@ func AuthenticateUser(db *sql.DB, email, password string) (*models.User, error) 
 		return user, nil
 	case err := <-errChan:
 		return nil, err
+	case <-ctx.Done():
+		return nil, fmt.Errorf("operation canceled: %w", ctx.Err())
 	}
 }
 
@@ -133,9 +146,11 @@ func UpdateUser(ctx context.Context, db *sql.DB, params UpdateUserParams) (*mode
 	userChan := make(chan *models.User)
 	errChan := make(chan error)
 
+	defer close(userChan)
+	defer close(errChan)
+
 	go func() {
 		var user models.User
-
 		query := `UPDATE users SET updated_at=CURRENT_TIMESTAMP`
 		args := []interface{}{}
 		argCount := 1
@@ -172,7 +187,6 @@ func UpdateUser(ctx context.Context, db *sql.DB, params UpdateUserParams) (*mode
 		}
 
 		user.Password = ""
-
 		userChan <- &user
 	}()
 
@@ -181,5 +195,7 @@ func UpdateUser(ctx context.Context, db *sql.DB, params UpdateUserParams) (*mode
 		return user, nil
 	case err := <-errChan:
 		return nil, err
+	case <-ctx.Done():
+		return nil, fmt.Errorf("operation canceled: %w", ctx.Err())
 	}
 }
