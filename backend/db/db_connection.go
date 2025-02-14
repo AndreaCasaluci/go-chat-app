@@ -10,7 +10,9 @@ import (
 	_ "github.com/lib/pq"
 )
 
-func Connect() (*sql.DB, error) {
+var DB *sql.DB
+
+func connect() (*sql.DB, error) {
 	err := godotenv.Load("../.env")
 	if err != nil {
 		log.Println("Warning: No .env file found, using system environment variables")
@@ -27,18 +29,26 @@ func Connect() (*sql.DB, error) {
 
 	connStr := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable", dbUser, dbPassword, dbHost, dbPort, dbName)
 
-	db, err := sql.Open("postgres", connStr)
+	DB, err = sql.Open("postgres", connStr)
 	if err != nil {
 		log.Fatalf("Error connecting to the database: %v\n", err)
 		return nil, err
 	}
 
-	err = db.Ping()
+	err = DB.Ping()
 	if err != nil {
 		log.Fatalf("Error pinging the database: %v\n", err)
 		return nil, err
 	}
 
 	log.Println("Successfully connected to the database.")
-	return db, nil
+	return DB, nil
+}
+
+func GetDb() (*sql.DB, error) {
+	if DB == nil {
+		return connect()
+	} else {
+		return DB, nil
+	}
 }

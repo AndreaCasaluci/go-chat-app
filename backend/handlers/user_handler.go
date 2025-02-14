@@ -84,12 +84,11 @@ func RegisterUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	db, err := database.Connect()
+	db, err := database.GetDb()
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Could not connect to the database: %v", err), http.StatusInternalServerError)
 		return
 	}
-	defer db.Close()
 
 	userExistsResult := repository.IsUserExists(db, &userReq.Username, &userReq.Email)
 	if userExistsResult.Err != nil {
@@ -153,12 +152,11 @@ func UpdateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	db, err := database.Connect()
+	db, err := database.GetDb()
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Could not connect to the database: %v", err), http.StatusInternalServerError)
 		return
 	}
-	defer db.Close()
 
 	isExistResult := repository.IsUserExists(db, userReq.Username, userReq.Email)
 	if isExistResult.Err != nil {
@@ -185,7 +183,6 @@ func UpdateUser(w http.ResponseWriter, r *http.Request) {
 		UpdatedAt: updatedUser.UpdatedAt,
 	}
 
-	// Send response
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(response)
