@@ -20,7 +20,7 @@ type Config struct {
 
 var AppConfig Config
 
-func loadConfig(path string) (config Config, err error) {
+func loadConfig() (config Config, err error) {
 	envs := Config{}
 	viper.SetConfigFile(".env")
 
@@ -44,7 +44,7 @@ func GetConfig() (config Config, err error) {
 	if AppConfig.DbHost != "" {
 		return AppConfig, nil
 	}
-	config, err = loadConfig(".")
+	config, err = loadConfig()
 	if err != nil {
 		fmt.Println("cannot load config:", err)
 		return AppConfig, err
