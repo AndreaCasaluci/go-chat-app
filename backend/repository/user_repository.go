@@ -18,6 +18,19 @@ type UserExistsResult struct {
 	Err    error
 }
 
+type CreateUserParams struct {
+	Username       string
+	Email          string
+	HashedPassword string
+}
+
+type UpdateUserParams struct {
+	UserUUID *uuid.UUID
+	Username *string
+	Email    *string
+	Password *string
+}
+
 func IsUserExists(ctx context.Context, db *sql.DB, username, email *string) UserExistsResult {
 	resultChan := make(chan UserExistsResult, 2)
 
@@ -56,12 +69,6 @@ func IsUserExists(ctx context.Context, db *sql.DB, username, email *string) User
 	}
 
 	return UserExistsResult{false, "", nil}
-}
-
-type CreateUserParams struct {
-	Username       string
-	Email          string
-	HashedPassword string
 }
 
 func CreateUser(ctx context.Context, db *sql.DB, params CreateUserParams) (*models.User, error) {
@@ -133,13 +140,6 @@ func AuthenticateUser(ctx context.Context, db *sql.DB, email, password string) (
 	case <-ctx.Done():
 		return nil, fmt.Errorf("operation canceled: %w", ctx.Err())
 	}
-}
-
-type UpdateUserParams struct {
-	UserUUID *uuid.UUID
-	Username *string
-	Email    *string
-	Password *string
 }
 
 func UpdateUser(ctx context.Context, db *sql.DB, params UpdateUserParams) (*models.User, error) {

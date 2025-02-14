@@ -26,6 +26,12 @@ type RegisterUserRequest struct {
 	Password string `json:"password" validate:"required,min=8,max=32"`
 }
 
+type UpdateUserRequest struct {
+	Username *string `json:"username"`
+	Email    *string `json:"email,omitempty"`
+	Password *string `json:"password,omitempty"`
+}
+
 func RegisterUser(w http.ResponseWriter, r *http.Request) {
 	var userReq RegisterUserRequest
 
@@ -81,12 +87,6 @@ func RegisterUser(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(response)
-}
-
-type UpdateUserRequest struct {
-	Username *string `json:"username"`
-	Email    *string `json:"email,omitempty"`
-	Password *string `json:"password,omitempty"`
 }
 
 func UpdateUser(w http.ResponseWriter, r *http.Request) {
