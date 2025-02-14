@@ -55,7 +55,9 @@ func LoginUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := repository.AuthenticateUser(db, loginReq.Email, loginReq.Password)
+	ctx := r.Context()
+
+	user, err := repository.AuthenticateUser(ctx, db, loginReq.Email, loginReq.Password)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Authentication failed: %v", err), http.StatusUnauthorized)
 		return
