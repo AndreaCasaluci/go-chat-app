@@ -169,7 +169,8 @@ func UpdateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	updatedUser, err := repository.UpdateUser(db, repository.UpdateUserParams{&claimUUID, userReq.Username, userReq.Email, userReq.Password})
+	ctx := r.Context()
+	updatedUser, err := repository.UpdateUser(ctx, db, repository.UpdateUserParams{&claimUUID, userReq.Username, userReq.Email, userReq.Password})
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Error updating user: %v", err), http.StatusInternalServerError)
 		return
