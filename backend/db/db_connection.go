@@ -3,42 +3,45 @@ package database
 import (
 	"database/sql"
 	"fmt"
-	"github.com/joho/godotenv"
-	"log"
-	"os"
-
+	"github.com/AndreaCasaluci/go-chat-app/utils"
 	_ "github.com/lib/pq"
+	"log"
 )
 
-func Connect() (*sql.DB, error) {
-	err := godotenv.Load("../.env")
-	if err != nil {
-		log.Println("Warning: No .env file found, using system environment variables")
-	}
-	dbHost := os.Getenv("DB_HOST")
-	dbPort := os.Getenv("DB_PORT")
-	dbUser := os.Getenv("DB_USER")
-	dbPassword := os.Getenv("DB_PASSWORD")
-	dbName := os.Getenv("DB_NAME")
+var DB *sql.DB
 
-	if dbHost == "" || dbUser == "" || dbPassword == "" || dbName == "" {
+func connect() (*sql.DB, error) {
+	config, err := utils.GetConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	if config.DbHost == "" || config.DbUsername == "" || config.DbPassword == "" || config.DbName == "" {
 		log.Fatal("Error: Missing required database environment variables")
 	}
 
-	connStr := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable", dbUser, dbPassword, dbHost, dbPort, dbName)
+	connStr := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable", config.DbUsername, config.DbPassword, config.DbHost, config.DbPort, config.DbName)
 
-	db, err := sql.Open("postgres", connStr)
+	DB, err = sql.Open("postgres", connStr)
 	if err != nil {
 		log.Fatalf("Error connecting to the database: %v\n", err)
 		return nil, err
 	}
 
-	err = db.Ping()
+	err = DB.Ping()
 	if err != nil {
 		log.Fatalf("Error pinging the database: %v\n", err)
 		return nil, err
 	}
 
 	log.Println("Successfully connected to the database.")
-	return db, nil
+	return DB, nil
+}
+
+func GetDb() (*sql.DB, error) {
+	if DB == nil {
+		return connect()
+	} else {
+		return DB, nil
+	}
 }
